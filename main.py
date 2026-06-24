@@ -7,18 +7,10 @@ intents.message_content = True
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Role IDs as provided
+# IDs
 JUDGE_ROLE_ID = 1519179704500748388
 ARCHIVIST_ROLE_ID = 1519179773602037811
-
-@bot.event
-async def on_ready():
-    print(f"The Scars Empire Court is now in session. Logged in as {bot.user}")
-
-# Debug command to ensure the bot is alive
-@bot.command()
-async def ping(ctx):
-    await ctx.send("The Empire listens.")
+trial_states = {}
 
 @bot.command()
 @commands.has_role(JUDGE_ROLE_ID)
@@ -31,47 +23,49 @@ async def trial(ctx, accuser: discord.Member, defendant: discord.Member, *, char
         f"**PRESIDING JUDGE:** {ctx.author.mention}\n"
         f"**ACCUSER:** {accuser.mention}\n"
         f"**DEFENDANT:** {defendant.mention}\n\n"
-        f"**Charges:** {charge}\n\n"
-        f"📜 **RULES OF PROCEEDING (READ CAREFULLY OR PERISH):** 📜\n\n"
-        f"**1. ABSOLUTE DECORUM:** There will be absolutely no disrespect, insolence, or swearing in this courtroom. You speak only when spoken to.\n\n"
-        f"**2. CONTEMPT IS INSTANT LOSS:** Any multiple violations at judges discretion for breach of protocol, speaking out of turn, or disrespecting the Judge or The Empire will result in immediate **Contempt of Court**. Contempt triggers an instant forfeiture of your case and a proceeding with the maximum sentencing.\n\n"
-        f"**3. REPRESENTATION:** You may only represent yourself. False testimony or obstruction guarantees your ruin.\n\n"
-        f"**4. WITNESSES & EVIDENCE:** You may not interrupt. Witnesses will only speak if formally summoned by the Judge. All documentation and evidence must be submitted directly to the thread for the Archivist's strict verification. Unverified claims are worthless.\n\n"
-        f"**5. UNAUTHORIZED INTERFERENCE:** Only the Judge, Archivist, Accuser, Defendant, and summoned witnesses may speak in this thread. All outsiders who interfere will face the wrath of the Empire.\n\n"
-        f"**The Archivist is now recording your every breath.** The Accuser may present their opening statement."
+        f"**CHARGES:** {charge}\n\n"
+        f"📜 **THE CODE OF CONDUCT (READ OR PERISH):** 📜\n"
+        f"**1. DECORUM:** Silence is mandatory. You speak only when the Judge commands.\n"
+        f"**2. CONTEMPT:** Any unauthorized interruption, disrespect, or failure to follow the Judge's phase-flow results in **Contempt**. Contempt equals automatic loss of the trial.\n"
+        f"**3. REPRESENTATION:** Self-representation only. No counsel.\n"
+        f"**4. EVIDENCE:** All evidence must be posted as images or links within this thread. The Archivist will verify all claims.\n"
+        f"**5. THE FLOW:** The Judge will cycle through phases (!next). Follow the phase, or face the wrath of the Empire.\n\n"
+        f"**The Archivist is recording your every breath. The Accuser may now present their opening statement.**"
     )
-    
-    thread = await ctx.channel.create_thread(
-        name=f"Trial: {defendant.name}", 
-        type=discord.ChannelType.public_thread
-    )
-    
+    thread = await ctx.channel.create_thread(name=f"Trial: {defendant.name}", type=discord.ChannelType.public_thread)
     await thread.send(declaration)
-    await ctx.send(f"The Judge has called court into session. The fate of {defendant.mention} will be decided here: {thread.mention}")
+    await ctx.send(f"The court is in session: {thread.mention}")
 
-@trial.error
-async def trial_error(ctx, error):
-    if isinstance(error, commands.MissingRole):
-        await ctx.send("Silence. Only a recognized **Judge Of The Empire** may convene a trial.")
-    elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("Improper formatting. Use: `!trial @Accuser @Defendant The Charge`")
+@bot.command()
+@commands.has_role(JUDGE_ROLE_ID)
+async def next(ctx):
+    thread_id = ctx.channel.id
+    current_phase = trial_states.get(thread_id, "Opening Statement")
+    phases = {
+        "Opening Statement": "Accuser's Evidence",
+        "Accuser's Evidence": "Defendant's Defense",
+        "Defendant's Defense": "Closing Statements",
+        "Closing Statements": "Deliberation/Verdict"
+    }
+    next_phase = phases.get(current_phase, "Conclusion")
+    trial_states[thread_id] = next_phase
+    await ctx.send(f"⚖️ **PHASE SHIFT:** The court has moved to **{next_phase}**.")
+
+@bot.command()
+@commands.has_role(JUDGE_ROLE_ID)
+async def enforce(ctx, rule_number: int):
+    rules = {1: "DECORUM: Silence is mandatory. You speak only when commanded.", 2: "CONTEMPT: Any breach of protocol is instant loss.", 3: "REPRESENTATION: Self-representation only.", 4: "EVIDENCE: Evidence must be in the thread.", 5: "FLOW: Follow the phase instructions."}
+    await ctx.send(f"⚠️ **ENFORCEMENT:** Rule {rule_number} - {rules.get(rule_number, 'Unknown Rule')}")
 
 @bot.command()
 @commands.has_role(JUDGE_ROLE_ID)
 async def contempt(ctx, member: discord.Member):
-    await ctx.send(f"🔨 **CONTEMPT OF COURT!** 🔨\n"
-                   f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                   f"{member.mention} has violated the sacred rules of the Scars Empire Court. "
-                   f"This case is instantly forfeit. Prepare for immediate sentencing.")
+    await ctx.send(f"🔨 **CONTEMPT OF COURT!** 🔨 {member.mention} is in violation. Case forfeit.")
 
 @bot.command()
 @commands.has_role(ARCHIVIST_ROLE_ID)
 async def archive(ctx):
-    if isinstance(ctx.channel, discord.Thread):
-        await ctx.send("🗄️ **PROCEEDINGS CONCLUDED.**\n"
-                       "The evidence phase is over. The record is now permanent and this thread shall be locked. May the Empire have mercy.")
-        await ctx.channel.edit(archived=True, locked=True)
-    else:
-        await ctx.send("This command can only be used to seal an active trial thread.")
+    await ctx.channel.edit(archived=True, locked=True)
+    await ctx.send("🗄️ **PROCEEDINGS SEALED.**")
 
 bot.run(os.environ['DISCORD_TOKEN'])
