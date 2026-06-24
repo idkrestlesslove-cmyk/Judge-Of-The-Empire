@@ -9,7 +9,7 @@ intents.message_content = True
 intents.members = True 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- CONFIGURATION (HARD-CODED) ---
+# --- CONFIGURATION ---
 JUDGE_ROLE_ID = 1519179704500748388 
 BUNKER_CHANNEL_ID = 1519313838481080390
 RECORDS_CHANNEL_ID = 1519338155441131601
@@ -21,14 +21,16 @@ WHITE = 0xFFFFFF
 
 @bot.event
 async def on_ready():
-    print(f"Empire Court System Active: {bot.user}")
+    print(f"Empire Court System Online. Ready for duty.")
 
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingRole):
         await ctx.send("❌ **ACCESS DENIED:** You lack the required Judge credentials.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("❌ **SYNTAX ERROR:** Usage: `!trial @User [Charge]`")
     elif isinstance(error, commands.BotMissingPermissions):
-        await ctx.send("❌ **BOT ERROR:** I do not have permission to create threads.")
+        await ctx.send("❌ **SYSTEM ERROR:** I lack 'Manage Threads' permission.")
     else:
         print(f"Error: {error}")
 
@@ -42,7 +44,6 @@ async def ping(ctx):
 async def trial(ctx, defendant: discord.Member, *, charge: str):
     case_num = f"CASE-{datetime.datetime.now().strftime('%H%M')}"
     
-    # Create Private Thread
     thread = await ctx.channel.create_thread(name=f"{case_num} | {defendant.name}", type=discord.ChannelType.private_thread)
 
     embed = discord.Embed(title="⚖️ COURT OF THE EMPIRE: SESSION OPENED", color=WHITE)
@@ -61,7 +62,7 @@ async def verdict(ctx, charges: str, status: str, *, disposition: str):
     records = bot.get_channel(RECORDS_CHANNEL_ID)
     date = datetime.datetime.now().strftime("%Y-%m-%d")
 
-    # Bunker-Records (Black)
+    # Bunker-Records
     if bunker:
         embed_bunker = discord.Embed(title="🔒 BUNKER-RECORDS", color=BLACK)
         embed_bunker.add_field(name="CASE", value=ctx.channel.name, inline=True)
@@ -71,7 +72,7 @@ async def verdict(ctx, charges: str, status: str, *, disposition: str):
         embed_bunker.add_field(name="DISPOSITION", value=disposition, inline=False)
         await bunker.send(embed=embed_bunker)
 
-    # Public Archive (Gold)
+    # Public Archive
     if records:
         embed_public = discord.Embed(title="📜 EMPIRE ARCHIVE: CASE CLOSED", color=GOLD)
         embed_public.add_field(name="CASE", value=ctx.channel.name, inline=True)
