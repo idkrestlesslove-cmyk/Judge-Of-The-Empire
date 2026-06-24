@@ -3,19 +3,6 @@ from discord.ext import commands
 import datetime
 import os
 
-
-@bot.command()
-async def checkchannels(ctx):
-    """Debug tool: Checks if the bot can find your configured channels."""
-    bunker = bot.get_channel(BUNKER_CHANNEL_ID)
-    records = bot.get_channel(RECORDS_CHANNEL_ID)
-    
-    msg = "**Channel Status Check:**\n"
-    msg += f"Bunker: {'✅ Found (' + bunker.name + ')' if bunker else '❌ Not Found'}\n"
-    msg += f"Records: {'✅ Found (' + records.name + ')' if records else '❌ Not Found'}\n"
-    
-    await ctx.send(msg)
-
 # --- SETUP ---
 intents = discord.Intents.default()
 intents.message_content = True
@@ -36,16 +23,29 @@ WHITE = 0xFFFFFF
 async def on_ready():
     print(f"Empire Court System Online. Ready for duty.")
 
+# --- DIAGNOSTIC TOOL ---
+@bot.command()
+async def checkchannels(ctx):
+    """Checks if the bot can find and access the configured channels."""
+    bunker = bot.get_channel(BUNKER_CHANNEL_ID)
+    records = bot.get_channel(RECORDS_CHANNEL_ID)
+    
+    msg = "**Empire Channel Status Report:**\n"
+    msg += f"Bunker-Records: {'✅ Found (' + bunker.name + ')' if bunker else '❌ NOT FOUND'}\n"
+    msg += f"Court Records: {'✅ Found (' + records.name + ')' if records else '❌ NOT FOUND'}\n"
+    
+    await ctx.send(msg)
+
+# --- ERROR HANDLING ---
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingRole):
         await ctx.send("❌ **ACCESS DENIED:** You lack the required Judge credentials.")
     elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("❌ **SYNTAX ERROR:** Usage: `!trial @User [Charge]`")
-    elif isinstance(error, commands.BotMissingPermissions):
-        await ctx.send("❌ **SYSTEM ERROR:** I lack 'Manage Threads' permission.")
+        await ctx.send("❌ **SYNTAX ERROR:** Use quotes for multi-word arguments.")
     else:
         print(f"Error: {error}")
+        await ctx.send(f"⚠️ **ERROR:** {str(error)}")
 
 # --- COURT COMMANDS ---
 @bot.command()
@@ -63,7 +63,6 @@ async def trial(ctx, defendant: discord.Member, *, charge: str):
     embed.add_field(name="CASE NUMBER", value=case_num, inline=True)
     embed.add_field(name="DEFENDANT", value=defendant.mention, inline=True)
     embed.add_field(name="CHARGE", value=charge, inline=False)
-    embed.set_footer(text="Proceedings are classified until verdict.")
     
     await thread.send(embed=embed)
     await ctx.send(f"**{case_num}** registered. Court is in session: {thread.mention}")
@@ -75,23 +74,29 @@ async def verdict(ctx, charges: str, status: str, *, disposition: str):
     records = bot.get_channel(RECORDS_CHANNEL_ID)
     date = datetime.datetime.now().strftime("%Y-%m-%d")
 
-    # Bunker-Records
+    # Send to Bunker
     if bunker:
-        embed_bunker = discord.Embed(title="🔒 BUNKER-RECORDS", color=BLACK)
-        embed_bunker.add_field(name="CASE", value=ctx.channel.name, inline=True)
-        embed_bunker.add_field(name="DATE", value=date, inline=True)
-        embed_bunker.add_field(name="CHARGES", value=charges, inline=False)
-        embed_bunker.add_field(name="STATUS", value=status, inline=True)
-        embed_bunker.add_field(name="DISPOSITION", value=disposition, inline=False)
-        await bunker.send(embed=embed_bunker)
+        try:
+            embed_bunker = discord.Embed(title="🔒 BUNKER-RECORDS", color=BLACK)
+            embed_bunker.add_field(name="CASE", value=ctx.channel.name, inline=True)
+            embed_bunker.add_field(name="STATUS", value=status, inline=True)
+            embed_bunker.add_field(name="CHARGES", value=charges, inline=False)
+            embed_bunker.add_field(name="DISPOSITION", value=disposition, inline=False)
+            await bunker.send(embed=embed_bunker)
+        except Exception as e:
+            await ctx.send(f"⚠️ Bunker send failed: {e}")
 
-    # Public Archive
+    # Send to Records
     if records:
-        embed_public = discord.Embed(title="📜 EMPIRE ARCHIVE: CASE CLOSED", color=GOLD)
-        embed_public.add_field(name="CASE", value=ctx.channel.name, inline=True)
-        embed_public.add_field(name="DATE", value=date, inline=True)
-        embed_public.add_field(name="VERDICT", value=status, inline=False)
-        await records.send(embed=embed_public)
+        try:
+            embed_public = discord.Embed(title="📜 EMPIRE ARCHIVE: CASE CLOSED", color=GOLD)
+            embed_public.add_field(name="CASE", value=ctx.channel.name, inline=True)
+            embed_public.add_field(name="VERDICT", value=status, inline=False)
+            await records.send(embed=embed_public)
+        except Exception as e:
+            await ctx.send(f"⚠️ Records send failed: {e}")
+    else:
+        await ctx.send("❌ Critical Error: Records channel ID not found.")
 
     await ctx.send("Verdict processed. Records sealed.")
     await ctx.channel.edit(archived=True, locked=True)
