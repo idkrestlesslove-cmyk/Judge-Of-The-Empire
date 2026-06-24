@@ -30,11 +30,10 @@ async def checkchannels(ctx):
     bunker = bot.get_channel(BUNKER_CHANNEL_ID)
     records = bot.get_channel(RECORDS_CHANNEL_ID)
     
-    msg = "**Empire Channel Status Report:**\n"
-    msg += f"Bunker-Records: {'✅ Found (' + bunker.name + ')' if bunker else '❌ NOT FOUND'}\n"
-    msg += f"Court Records: {'✅ Found (' + records.name + ')' if records else '❌ NOT FOUND'}\n"
+    bunker_status = f"✅ Found ({bunker.name})" if bunker else "❌ NOT FOUND"
+    records_status = f"✅ Found ({records.name})" if records else "❌ NOT FOUND"
     
-    await ctx.send(msg)
+    await ctx.send(f"**Empire Channel Status Report:**\nBunker: {bunker_status}\nRecords: {records_status}")
 
 # --- ERROR HANDLING ---
 @bot.event
@@ -42,7 +41,7 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingRole):
         await ctx.send("❌ **ACCESS DENIED:** You lack the required Judge credentials.")
     elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("❌ **SYNTAX ERROR:** Use quotes for multi-word arguments.")
+        await ctx.send("❌ **SYNTAX ERROR:** Use quotes for multi-word arguments (e.g., `!verdict \"Charge\" \"Status\" \"Disposition\"`).")
     else:
         print(f"Error: {error}")
         await ctx.send(f"⚠️ **ERROR:** {str(error)}")
@@ -57,15 +56,18 @@ async def ping(ctx):
 async def trial(ctx, defendant: discord.Member, *, charge: str):
     case_num = f"CASE-{datetime.datetime.now().strftime('%H%M')}"
     
-    thread = await ctx.channel.create_thread(name=f"{case_num} | {defendant.name}", type=discord.ChannelType.private_thread)
-
-    embed = discord.Embed(title="⚖️ COURT OF THE EMPIRE: SESSION OPENED", color=WHITE)
-    embed.add_field(name="CASE NUMBER", value=case_num, inline=True)
-    embed.add_field(name="DEFENDANT", value=defendant.mention, inline=True)
-    embed.add_field(name="CHARGE", value=charge, inline=False)
-    
-    await thread.send(embed=embed)
-    await ctx.send(f"**{case_num}** registered. Court is in session: {thread.mention}")
+    try:
+        thread = await ctx.channel.create_thread(name=f"{case_num} | {defendant.name}", type=discord.ChannelType.private_thread)
+        
+        embed = discord.Embed(title="⚖️ COURT OF THE EMPIRE: SESSION OPENED", color=WHITE)
+        embed.add_field(name="CASE NUMBER", value=case_num, inline=True)
+        embed.add_field(name="DEFENDANT", value=defendant.mention, inline=True)
+        embed.add_field(name="CHARGE", value=charge, inline=False)
+        
+        await thread.send(embed=embed)
+        await ctx.send(f"**{case_num}** registered. Court is in session: {thread.mention}")
+    except Exception as e:
+        await ctx.send(f"❌ **FAILED TO CREATE THREAD:** {e}")
 
 @bot.command()
 @commands.has_role(JUDGE_ROLE_ID)
@@ -85,6 +87,8 @@ async def verdict(ctx, charges: str, status: str, *, disposition: str):
             await bunker.send(embed=embed_bunker)
         except Exception as e:
             await ctx.send(f"⚠️ Bunker send failed: {e}")
+    else:
+        await ctx.send("❌ Bunker-Records channel not found.")
 
     # Send to Records
     if records:
@@ -96,7 +100,7 @@ async def verdict(ctx, charges: str, status: str, *, disposition: str):
         except Exception as e:
             await ctx.send(f"⚠️ Records send failed: {e}")
     else:
-        await ctx.send("❌ Critical Error: Records channel ID not found.")
+        await ctx.send("❌ Court Records channel not found.")
 
     await ctx.send("Verdict processed. Records sealed.")
     await ctx.channel.edit(archived=True, locked=True)
