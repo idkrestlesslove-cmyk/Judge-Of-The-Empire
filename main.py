@@ -12,8 +12,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # --- CONFIGURATION ---
 JUDGE_ROLE_ID = 1519179704500748388 
 
-# IMPORTANT: Right-click your channels and "Copy Channel ID" to replace these placeholders
-VAULT_CHANNEL_ID = 000000000000000000 
+# Bunker-Records (Formerly Imperial Vault)
+BUNKER_CHANNEL_ID = 1519313838481080390
+# REPLACE THIS WITH YOUR PUBLIC ARCHIVE CHANNEL ID
 RECORDS_CHANNEL_ID = 000000000000000000 
 
 # --- AESTHETICS ---
@@ -59,19 +60,19 @@ async def trial(ctx, defendant: discord.Member, *, charge: str):
 @bot.command()
 @commands.has_role(JUDGE_ROLE_ID)
 async def verdict(ctx, charges: str, status: str, *, disposition: str):
-    vault = bot.get_channel(VAULT_CHANNEL_ID)
+    bunker = bot.get_channel(BUNKER_CHANNEL_ID)
     records = bot.get_channel(RECORDS_CHANNEL_ID)
     date = datetime.datetime.now().strftime("%Y-%m-%d")
 
-    # Vault Record (Black)
-    if vault:
-        embed_vault = discord.Embed(title="🔒 IMPERIAL VAULT RECORD", color=BLACK)
-        embed_vault.add_field(name="CASE", value=ctx.channel.name, inline=True)
-        embed_vault.add_field(name="DATE", value=date, inline=True)
-        embed_vault.add_field(name="CHARGES", value=charges, inline=False)
-        embed_vault.add_field(name="STATUS", value=status, inline=True)
-        embed_vault.add_field(name="DISPOSITION", value=disposition, inline=False)
-        await vault.send(embed=embed_vault)
+    # Bunker-Records (Black)
+    if bunker:
+        embed_bunker = discord.Embed(title="🔒 BUNKER-RECORDS", color=BLACK)
+        embed_bunker.add_field(name="CASE", value=ctx.channel.name, inline=True)
+        embed_bunker.add_field(name="DATE", value=date, inline=True)
+        embed_bunker.add_field(name="CHARGES", value=charges, inline=False)
+        embed_bunker.add_field(name="STATUS", value=status, inline=True)
+        embed_bunker.add_field(name="DISPOSITION", value=disposition, inline=False)
+        await bunker.send(embed=embed_bunker)
 
     # Public Archive (Gold)
     if records:
