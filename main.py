@@ -3,6 +3,19 @@ from discord.ext import commands
 import datetime
 import os
 
+
+@bot.command()
+async def checkchannels(ctx):
+    """Debug tool: Checks if the bot can find your configured channels."""
+    bunker = bot.get_channel(BUNKER_CHANNEL_ID)
+    records = bot.get_channel(RECORDS_CHANNEL_ID)
+    
+    msg = "**Channel Status Check:**\n"
+    msg += f"Bunker: {'✅ Found (' + bunker.name + ')' if bunker else '❌ Not Found'}\n"
+    msg += f"Records: {'✅ Found (' + records.name + ')' if records else '❌ Not Found'}\n"
+    
+    await ctx.send(msg)
+
 # --- SETUP ---
 intents = discord.Intents.default()
 intents.message_content = True
