@@ -1,22 +1,28 @@
 import discord
 from discord.ext import commands
 import datetime
+import os  # <--- THIS WAS MISSING
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-case_counter = 100 # Starting case number
+case_counter = 100
 JUDGE_ROLE_ID = 1519179704500748388
 ARCHIVIST_ROLE_ID = 1519179773602037811
-VAULT_CHANNEL_ID = 000000000000000000 # Add your Vault Channel ID
-RECORDS_CHANNEL_ID = 000000000000000000 # Add your Records Channel ID
 
-# EMBED COLORS
+# IMPORTANT: Replace these with your actual Channel IDs
+VAULT_CHANNEL_ID = 000000000000000000 
+RECORDS_CHANNEL_ID = 000000000000000000 
+
 BLACK = 0x000000
 GOLD = 0xFFD700
 WHITE = 0xFFFFFF
+
+@bot.event
+async def on_ready():
+    print(f"Empire Court Bot Active as {bot.user}")
 
 @bot.command()
 @commands.has_role(JUDGE_ROLE_ID)
@@ -40,9 +46,12 @@ async def trial(ctx, defendant: discord.Member, *, charge: str):
 async def verdict(ctx, charges: str, status: str, *, disposition: str):
     vault = bot.get_channel(VAULT_CHANNEL_ID)
     records = bot.get_channel(RECORDS_CHANNEL_ID)
+    
+    if not vault or not records:
+        return await ctx.send("Error: Configuration mismatch. Vault or Records channel not found.")
+        
     date = datetime.datetime.now().strftime("%Y-%m-%d")
 
-    # Secure/Classified Record (Vault)
     embed_vault = discord.Embed(title="🔒 IMPERIAL VAULT RECORD", color=BLACK)
     embed_vault.add_field(name="CASE", value=ctx.channel.name, inline=True)
     embed_vault.add_field(name="DATE", value=date, inline=True)
@@ -51,7 +60,6 @@ async def verdict(ctx, charges: str, status: str, *, disposition: str):
     embed_vault.add_field(name="DISPOSITION", value=disposition, inline=False)
     await vault.send(embed=embed_vault)
 
-    # Public Record (Records)
     embed_public = discord.Embed(title="📜 EMPIRE ARCHIVE: CASE CLOSED", color=GOLD)
     embed_public.add_field(name="CASE", value=ctx.channel.name, inline=True)
     embed_public.add_field(name="DATE", value=date, inline=True)
