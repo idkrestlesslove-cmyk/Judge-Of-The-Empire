@@ -14,7 +14,7 @@ async def on_ready():
 
 # !trial [@accuser] [@defendant] [charge]
 @bot.command()
-@commands.has_role("Judge")
+@commands.has_role("Judge Of The Empire")
 async def trial(ctx, accuser: discord.Member, defendant: discord.Member, *, charge: str):
     # The intimidating, formal declaration of Scars Empire Law
     declaration = (
@@ -49,13 +49,13 @@ async def trial(ctx, accuser: discord.Member, defendant: discord.Member, *, char
 @trial.error
 async def trial_error(ctx, error):
     if isinstance(error, commands.MissingRole):
-        await ctx.send("Silence. Only a recognized **Judge** of the Scars Empire may convene a trial.")
+        await ctx.send("Silence. Only a recognized **Judge Of The Empire** may convene a trial.")
     elif isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("Improper formatting. Use: `!trial @Accuser @Defendant The Charge`")
 
 # !contempt [@user] (Allows the judge to instantly end someone's case)
 @bot.command()
-@commands.has_role("Judge")
+@commands.has_role("Judge Of The Empire")
 async def contempt(ctx, member: discord.Member):
     await ctx.send(f"🔨 **CONTEMPT OF COURT!** 🔨\n"
                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -67,7 +67,7 @@ async def contempt(ctx, member: discord.Member):
 @contempt.error
 async def contempt_error(ctx, error):
     if isinstance(error, commands.MissingRole):
-        await ctx.send("Only a **Judge** may strike a soul with contempt.")
+        await ctx.send("Only a **Judge Of The Empire** may strike a soul with contempt.")
     elif isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("Specify who is in contempt. Use: `!contempt @User`")
 
