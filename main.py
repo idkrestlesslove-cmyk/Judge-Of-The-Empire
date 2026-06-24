@@ -9,13 +9,10 @@ intents.message_content = True
 intents.members = True 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- CONFIGURATION ---
+# --- CONFIGURATION (HARD-CODED) ---
 JUDGE_ROLE_ID = 1519179704500748388 
-
-# Bunker-Records (Formerly Imperial Vault)
 BUNKER_CHANNEL_ID = 1519313838481080390
-# REPLACE THIS WITH YOUR PUBLIC ARCHIVE CHANNEL ID
-RECORDS_CHANNEL_ID = 000000000000000000 
+RECORDS_CHANNEL_ID = 1519338155441131601
 
 # --- AESTHETICS ---
 BLACK = 0x000000
