@@ -10,9 +10,9 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # --- CONFIGURATION ---
-# PASTE YOUR CORRECT ROLE ID HERE (from !debugroles)
-JUDGE_ROLE_ID = 000000000000000000 
-# PASTE YOUR CHANNEL IDs HERE
+JUDGE_ROLE_ID = 1519179704500748388 
+
+# IMPORTANT: Right-click your channels and "Copy Channel ID" to replace these placeholders
 VAULT_CHANNEL_ID = 000000000000000000 
 RECORDS_CHANNEL_ID = 000000000000000000 
 
@@ -25,22 +25,14 @@ WHITE = 0xFFFFFF
 async def on_ready():
     print(f"Empire Court System Active: {bot.user}")
 
-# --- DIAGNOSTICS & ERROR HANDLING ---
-@bot.command()
-async def debugroles(ctx):
-    output = "Here are your role IDs:\n"
-    for role in ctx.author.roles:
-        output += f"**{role.name}**: `{role.id}`\n"
-    await ctx.send(output)
-
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingRole):
         await ctx.send("❌ **ACCESS DENIED:** You lack the required Judge credentials.")
     elif isinstance(error, commands.BotMissingPermissions):
-        await ctx.send("❌ **BOT ERROR:** I do not have 'Manage Threads' permission.")
+        await ctx.send("❌ **BOT ERROR:** I do not have permission to create threads.")
     else:
-        await ctx.send(f"⚠️ **ERROR:** {str(error)}")
+        print(f"Error: {error}")
 
 # --- COURT COMMANDS ---
 @bot.command()
