@@ -7,20 +7,22 @@ intents.message_content = True
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- REPLACE THESE NUMBERS WITH YOUR ACTUAL ROLE IDS ---
-# Right-click your role in Server Settings > Roles and "Copy Role ID"
-JUDGE_ROLE_ID = 123456789012345678 
-ARCHIVIST_ROLE_ID = 123456789012345678
-# -------------------------------------------------------
+# Role IDs as provided
+JUDGE_ROLE_ID = 1519179704500748388
+ARCHIVIST_ROLE_ID = 1519179773602037811
 
 @bot.event
 async def on_ready():
     print(f"The Scars Empire Court is now in session. Logged in as {bot.user}")
 
+# Debug command to ensure the bot is alive
+@bot.command()
+async def ping(ctx):
+    await ctx.send("The Empire listens.")
+
 @bot.command()
 @commands.has_role(JUDGE_ROLE_ID)
 async def trial(ctx, accuser: discord.Member, defendant: discord.Member, *, charge: str):
-    # The updated Scars' Empire declaration
     declaration = (
         f"⚖️ **THE COURT OF SCARS’ EMPIRE CONVENES** ⚖️\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -39,13 +41,11 @@ async def trial(ctx, accuser: discord.Member, defendant: discord.Member, *, char
         f"**The Archivist is now recording your every breath.** The Accuser may present their opening statement."
     )
     
-    # Create the thread
     thread = await ctx.channel.create_thread(
         name=f"Trial: {defendant.name}", 
         type=discord.ChannelType.public_thread
     )
     
-    # Send the formal opening into the thread
     await thread.send(declaration)
     await ctx.send(f"The Judge has called court into session. The fate of {defendant.mention} will be decided here: {thread.mention}")
 
