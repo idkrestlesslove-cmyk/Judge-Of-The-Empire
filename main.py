@@ -1,71 +1,64 @@
 import discord
 from discord.ext import commands
-import os
+import datetime
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# IDs
+case_counter = 100 # Starting case number
 JUDGE_ROLE_ID = 1519179704500748388
 ARCHIVIST_ROLE_ID = 1519179773602037811
-trial_states = {}
+VAULT_CHANNEL_ID = 000000000000000000 # Add your Vault Channel ID
+RECORDS_CHANNEL_ID = 000000000000000000 # Add your Records Channel ID
+
+# EMBED COLORS
+BLACK = 0x000000
+GOLD = 0xFFD700
+WHITE = 0xFFFFFF
 
 @bot.command()
 @commands.has_role(JUDGE_ROLE_ID)
-async def trial(ctx, accuser: discord.Member, defendant: discord.Member, *, charge: str):
-    declaration = (
-        f"⚖️ **THE COURT OF SCARS’ EMPIRE CONVENES** ⚖️\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"Today in Eternity you stand before the absolute authority of Scars’ Empire. "
-        f"Justice here is swift, permanent, and without mercy.\n\n"
-        f"**PRESIDING JUDGE:** {ctx.author.mention}\n"
-        f"**ACCUSER:** {accuser.mention}\n"
-        f"**DEFENDANT:** {defendant.mention}\n\n"
-        f"**CHARGES:** {charge}\n\n"
-        f"📜 **THE CODE OF CONDUCT (READ OR PERISH):** 📜\n"
-        f"**1. DECORUM:** Silence is mandatory. You speak only when the Judge commands.\n"
-        f"**2. CONTEMPT:** Any unauthorized interruption, disrespect, or failure to follow the Judge's phase-flow results in **Contempt**. Contempt equals automatic loss of the trial.\n"
-        f"**3. REPRESENTATION:** Self-representation only. No counsel.\n"
-        f"**4. EVIDENCE:** All evidence must be posted as images or links within this thread. The Archivist will verify all claims.\n"
-        f"**5. THE FLOW:** The Judge will cycle through phases (!next). Follow the phase, or face the wrath of the Empire.\n\n"
-        f"**The Archivist is recording your every breath. The Accuser may now present their opening statement.**"
-    )
-    thread = await ctx.channel.create_thread(name=f"Trial: {defendant.name}", type=discord.ChannelType.public_thread)
-    await thread.send(declaration)
-    await ctx.send(f"The court is in session: {thread.mention}")
+async def trial(ctx, defendant: discord.Member, *, charge: str):
+    global case_counter
+    case_counter += 1
+    case_num = f"CASE-{case_counter}"
+    
+    embed = discord.Embed(title="⚖️ COURT OF THE EMPIRE: SESSION OPENED", color=WHITE)
+    embed.add_field(name="CASE NUMBER", value=case_num, inline=True)
+    embed.add_field(name="DEFENDANT", value=defendant.mention, inline=True)
+    embed.add_field(name="CHARGE", value=charge, inline=False)
+    embed.set_footer(text="Proceedings are classified until verdict.")
+    
+    thread = await ctx.channel.create_thread(name=f"{case_num} | {defendant.name}", type=discord.ChannelType.private_thread)
+    await thread.send(embed=embed)
+    await ctx.send(f"**{case_num}** has been registered. The court is in session.")
 
 @bot.command()
 @commands.has_role(JUDGE_ROLE_ID)
-async def next(ctx):
-    thread_id = ctx.channel.id
-    current_phase = trial_states.get(thread_id, "Opening Statement")
-    phases = {
-        "Opening Statement": "Accuser's Evidence",
-        "Accuser's Evidence": "Defendant's Defense",
-        "Defendant's Defense": "Closing Statements",
-        "Closing Statements": "Deliberation/Verdict"
-    }
-    next_phase = phases.get(current_phase, "Conclusion")
-    trial_states[thread_id] = next_phase
-    await ctx.send(f"⚖️ **PHASE SHIFT:** The court has moved to **{next_phase}**.")
+async def verdict(ctx, charges: str, status: str, *, disposition: str):
+    vault = bot.get_channel(VAULT_CHANNEL_ID)
+    records = bot.get_channel(RECORDS_CHANNEL_ID)
+    date = datetime.datetime.now().strftime("%Y-%m-%d")
 
-@bot.command()
-@commands.has_role(JUDGE_ROLE_ID)
-async def enforce(ctx, rule_number: int):
-    rules = {1: "DECORUM: Silence is mandatory. You speak only when commanded.", 2: "CONTEMPT: Any breach of protocol is instant loss.", 3: "REPRESENTATION: Self-representation only.", 4: "EVIDENCE: Evidence must be in the thread.", 5: "FLOW: Follow the phase instructions."}
-    await ctx.send(f"⚠️ **ENFORCEMENT:** Rule {rule_number} - {rules.get(rule_number, 'Unknown Rule')}")
+    # Secure/Classified Record (Vault)
+    embed_vault = discord.Embed(title="🔒 IMPERIAL VAULT RECORD", color=BLACK)
+    embed_vault.add_field(name="CASE", value=ctx.channel.name, inline=True)
+    embed_vault.add_field(name="DATE", value=date, inline=True)
+    embed_vault.add_field(name="CHARGES", value=charges, inline=False)
+    embed_vault.add_field(name="STATUS", value=status, inline=True)
+    embed_vault.add_field(name="DISPOSITION", value=disposition, inline=False)
+    await vault.send(embed=embed_vault)
 
-@bot.command()
-@commands.has_role(JUDGE_ROLE_ID)
-async def contempt(ctx, member: discord.Member):
-    await ctx.send(f"🔨 **CONTEMPT OF COURT!** 🔨 {member.mention} is in violation. Case forfeit.")
+    # Public Record (Records)
+    embed_public = discord.Embed(title="📜 EMPIRE ARCHIVE: CASE CLOSED", color=GOLD)
+    embed_public.add_field(name="CASE", value=ctx.channel.name, inline=True)
+    embed_public.add_field(name="DATE", value=date, inline=True)
+    embed_public.add_field(name="VERDICT", value=status, inline=False)
+    await records.send(embed=embed_public)
 
-@bot.command()
-@commands.has_role(ARCHIVIST_ROLE_ID)
-async def archive(ctx):
+    await ctx.send("Verdict processed. Records sealed.")
     await ctx.channel.edit(archived=True, locked=True)
-    await ctx.send("🗄️ **PROCEEDINGS SEALED.**")
 
 bot.run(os.environ['DISCORD_TOKEN'])
